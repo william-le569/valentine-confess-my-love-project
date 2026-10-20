@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>20/10 | Chúc Mừng Ngày Phụ Nữ Việt Nam ❤️</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* Combined Canvas for Matrix & Particles */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+
+        /* Initial Tap Overlay Screen */
+        #startOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        #startOverlay.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .pulse-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        .icon-circle {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(255, 42, 133, 0.15);
+            border: 1.5px solid rgba(255, 105, 180, 0.6);
+            box-shadow: 0 0 25px rgba(255, 42, 133, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 18px;
+            color: #ff69b4;
+            font-size: 28px;
+        }
+
+        .tap-title {
+            color: #ffffff;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 10px #ff2a85, 0 0 20px #ff2a85;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .tap-sub {
+            color: #ffb3d9;
+            font-size: 0.85rem;
+            font-family: 'Space Mono', monospace;
+            margin-top: 8px;
+            opacity: 0.8;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: scale(0.96);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.04);
+                opacity: 1;
+            }
+        }
+
+        /* Top Music Control Pill */
+        #musicBtn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 30;
+            background: rgba(15, 5, 12, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            border-radius: 30px;
+            padding: 8px 16px;
+            color: #ffb3d9;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 42, 133, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        #musicBtn:hover {
+            border-color: rgba(255, 105, 180, 0.8);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Đặt thẻ audio này trong phần body của file html -->
+    <audio id="bgMusic" src="nhac-cua-toi-edited.mp3" loop></audio>
+    <!-- Main Canvas rendering Matrix Rain + Particle Text -->
+    <canvas id="mainCanvas"></canvas>
+
+    <!-- Music Toggle -->
+    <!-- <button id="musicBtn" onclick="toggleAudio(event)">
+        <i id="musicIcon" class="fa-solid fa-music text-pink-400"></i>
+        <span id="musicText">Âm nhạc: Tắt</span>
+    </button> -->
+
+    <!-- Single Tap Start Overlay -->
+    <div id="startOverlay" onclick="startApp()">
+        <div class="pulse-box">
+            <div class="icon-circle">
+                <i class="fa-solid fa-hand-pointer"></i>
+            </div>
+            <div class="tap-title">Chạm vào màn hình để bắt đầu ✨</div>
+            <div class="tap-sub">20.10 | A Special Gift For You</div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================
+         * 1. CANVAS & MATRIX DIGITAL RAIN SYSTEM
+         * ========================================================= */
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initMatrix();
+        });
+
+        const matrixWords = [
+            "I LOVE YOU", "20/10", "HAPPY", "LOVE", "YÊU EM", 
+            "MY LOVE", "ALWAYS", "FOREVER", "CUTE", "ANGEL", "BEAUTIFUL", "❤️"
+        ];
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789♥❤💕I LOVE YOU2010".split("");
+
+        const fontSize = 14;
+        let columns = Math.floor(width / fontSize);
+        let drops = [];
+
+        function initMatrix() {
+            columns = Math.floor(width / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = {
+                    y: Math.random() * -100,
+                    speed: 1 + Math.random() * 1.5,
+                    text: getRandomMatrixText()
+                };
+            }
+        }
+
+        function getRandomMatrixText() {
+            if (Math.random() < 0.15) {
+                return matrixWords[Math.floor(Math.random() * matrixWords.length)];
+            }
+            return matrixChars[Math.floor(Math.random() * matrixChars.length)];
+        }
+
+        initMatrix();
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.font = `${fontSize}px 'Space Mono', monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const drop = drops[i];
+                const x = i * fontSize;
+                const y = drop.y * fontSize;
+
+                const isBright = Math.random() < 0.08;
+                ctx.fillStyle = isBright ? '#ffffff' : (Math.random() < 0.3 ? '#ff69b4' : '#ff2a85');
+                ctx.shadowColor = '#ff2a85';
+                ctx.shadowBlur = isBright ? 10 : 3;
+
+                ctx.fillText(drop.text, x, y);
+                ctx.shadowBlur = 0;
+
+                if (y > height && Math.random() > 0.975) {
+                    drops[i].y = 0;
+                    drops[i].text = getRandomMatrixText();
+                }
+
+                drops[i].y += drop.speed;
+            }
+        }
+
+
+        /* =========================================================
+         * 2. PARTICLE CONVERGENCE & EXPLOSION TEXT SYSTEM
+         * ========================================================= */
+        const textSequence = [
+            "Hôm nay 20.10",
+            "Chúc em luôn xinh đẹp",
+            "Rạng rỡ & Hạnh phúc!"
+            // "Anh yêu em nhiều lắm ❤️",
+            // "Anh yêu em nhiều lắm ❤️",
+            // "Anh yêu em nhiều lắm ❤️",
+        ];
+
+        let currentTextIndex = 0;
+        let particles = [];
+        let heartParticles = [];
+        let isSequenceRunning = false;
+        let sequencePhase = 'IDLE'; // 'CONVERGING', 'HOLDING', 'EXPLODING', 'HEART'
+        let phaseTimer = 0;
+
+        // Particle Class dùng cho gom chữ
+        class Particle {
+            constructor(x, y) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.originX = x;
+                this.originY = y;
+                
+                this.color = '#ffffff';
+                this.size = Math.random() * 2 + 1.5;
+                
+                this.vx = (Math.random() - 0.5) * 20;
+                this.vy = (Math.random() - 0.5) * 20;
+                this.ease = 0.08 + Math.random() * 0.05;
+                this.friction = 0.92;
+            }
+
+            update() {
+                if (sequencePhase === 'CONVERGING' || sequencePhase === 'HOLDING') {
+                    const dx = this.originX - this.x;
+                    const dy = this.originY - this.y;
+                    
+                    this.x += dx * this.ease;
+                    this.y += dy * this.ease;
+
+                } else if (sequencePhase === 'EXPLODING') {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = sequencePhase === 'HOLDING' ? 8 : 4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Formula tính tọa độ viền trái tim chuẩn
+        function getHeartFrame(t, scale) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+            return {
+                x: width / 2 + x * scale,
+                y: height / 2 - 20 + y * scale
+            };
+        }
+
+        // Particle Class riêng cho Trái Tim Tuôn Trào từ viền ra ngoài
+        class HeartEmitParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const scale = Math.min(width, height) / 35;
+                const t = Math.random() * Math.PI * 2;
+                const pt = getHeartFrame(t, scale);
+
+                this.x = pt.x;
+                this.y = pt.y;
+
+                // Tính hướng bắn từ tâm qua điểm viền ra ngoài
+                const angle = Math.atan2(this.y - (height / 2 - 20), this.x - width / 2) + (Math.random() - 0.5) * 0.4;
+                const speed = Math.random() * 2.5 + 0.8;
+
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                this.size = Math.random() * 2.8 + 1.0;
+                this.maxLife = Math.random() * 35 + 20;
+                this.life = this.maxLife;
+
+                const colors = ['#ff1493', '#ff69b4', '#ff3385', '#ffffff', '#ffb6c1'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                const alpha = this.life / this.maxLife;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff1493';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function getPixelCoordinates(text) {
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+            
+            offCanvas.width = width;
+            offCanvas.height = height;
+
+            let fontPixelSize = Math.floor(width / 11);
+            if (fontPixelSize > 72) fontPixelSize = 72;
+            if (fontPixelSize < 28) fontPixelSize = 28;
+
+            offCtx.font = `900 ${fontPixelSize}px 'Montserrat', sans-serif`;
+            offCtx.textAlign = 'center';
+            offCtx.textBaseline = 'middle';
+            offCtx.fillStyle = '#ffffff';
+
+            offCtx.fillText(text, width / 2, height / 2);
+
+            const imageData = offCtx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const points = [];
+
+            const step = width < 600 ? 4 : 5;
+
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const alphaIndex = (y * width + x) * 4 + 3;
+                    if (data[alphaIndex] > 128) {
+                        points.push({ x: x, y: y });
+                    }
+                }
+            }
+
+            return points;
+        }
+
+        function loadNextPhrase() {
+            if (currentTextIndex >= textSequence.length) {
+                // Đổi sang hiệu ứng Trái tim tuôn trào ở slide cuối
+                sequencePhase = 'HEART';
+                heartParticles = [];
+                for (let i = 0; i < 350; i++) {
+                    heartParticles.push(new HeartEmitParticle());
+                }
+                return;
+            }
+
+            const text = textSequence[currentTextIndex];
+            const targets = getPixelCoordinates(text);
+
+            particles = [];
+            for (let i = 0; i < targets.length; i++) {
+                particles.push(new Particle(targets[i].x, targets[i].y));
+            }
+
+            sequencePhase = 'CONVERGING';
+            phaseTimer = Date.now();
+        }
+
+        function updateParticleSequence() {
+            if (!isSequenceRunning) return;
+
+            const now = Date.now();
+
+            if (sequencePhase === 'CONVERGING') {
+                if (now - phaseTimer > 2800) {
+                    sequencePhase = 'HOLDING';
+                    phaseTimer = now;
+                }
+            } else if (sequencePhase === 'HOLDING') {
+                if (now - phaseTimer > 5000) {
+                    sequencePhase = 'EXPLODING';
+                    
+                    particles.forEach(p => {
+                        const angle = Math.random() * Math.PI * 2;
+                        const force = 15 + Math.random() * 25;
+                        p.vx = Math.cos(angle) * force;
+                        p.vy = Math.sin(angle) * force;
+                    });
+                    
+                    phaseTimer = now;
+                }
+            } else if (sequencePhase === 'EXPLODING') {
+                if (now - phaseTimer > 800) {
+                    currentTextIndex++;
+                    loadNextPhrase();
+                }
+            }
+
+            if (sequencePhase === 'HEART') {
+                // Cập nhật & Vẽ tập hợp hạt trái tim tuôn trào
+                heartParticles.forEach(hp => {
+                    hp.update();
+                    hp.draw();
+                });
+                drawCenterHeartText();
+            } else {
+                // Cập nhật & Vẽ chữ hạt gom tụ
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            }
+        }
+
+        function drawCenterHeartText() {
+            ctx.save();
+            let fontSizeCenter = Math.floor(width * 0.055);
+            if (fontSizeCenter < 24) fontSizeCenter = 24;
+            if (fontSizeCenter > 40) fontSizeCenter = 40;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `900 ${fontSizeCenter}px 'Montserrat', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff1493';
+            ctx.fillText("Minh Dương Yêu Em", width / 2, height / 2 - 20);
+            ctx.restore();
+        }
+
+
+        /* =========================================================
+         * 3. MAIN ANIMATION LOOP
+         * ========================================================= */
+        function mainLoop() {
+            drawMatrix();
+            updateParticleSequence();
+            requestAnimationFrame(mainLoop);
+        }
+
+        mainLoop();
+
+
+        /* =========================================================
+         * 4. APP CONTROL & AUDIO SYSTEM
+         * ========================================================= */
+        const bgMusic = document.getElementById('bgMusic');
+        function startApp() {
+            document.getElementById('startOverlay').classList.add('fade-out');
+            // Phát nhạc ngay khi người dùng chạm vào màn hình (để vượt qua cơ chế chặn autoplay của trình duyệt)
+            bgMusic.play().catch(error => {
+                console.log("Trình duyệt chặn phát tự động: ", error);
+            });
+
+            setTimeout(() => {
+                isSequenceRunning = true;
+                loadNextPhrase();
+            }, 300);
+            // // Start Audio
+            // try {
+            //     if (!audioContext) initAudio();
+            //     if (!isAudioPlaying) toggleAudioManual(true);
+            // } catch (e) {
+            //     console.log("Audio start bypassed:", e);
+            // }
+
+            // // Start Slide Sequence
+            // setTimeout(() => {
+            //     isSequenceRunning = true;
+            //     loadNextPhrase();
+            // }, 400);
+        }
+
+        let audioContext = null;
+        let isAudioPlaying = false;
+        let melodyInterval = null;
+
+        function initAudio() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioCtx();
+            } catch (err) {
+                console.log('AudioContext not supported');
+            }
+        }
+
+        function playSoftMelody() {
+            if (!audioContext || !isAudioPlaying) return;
+
+            const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; 
+            const freq = notes[Math.floor(Math.random() * notes.length)];
+
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+
+            gain.gain.setValueAtTime(0, audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(0.06, audioContext.currentTime + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 2.8);
+
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.start();
+            osc.stop(audioContext.currentTime + 2.9);
+        }
+
+        function toggleAudioManual(enable) {
+            if (!audioContext) initAudio();
+
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            const btnText = document.getElementById('musicText');
+            const btnIcon = document.getElementById('musicIcon');
+
+            if (enable) {
+                isAudioPlaying = true;
+                btnText.innerText = "Âm nhạc: Bật";
+                btnIcon.className = "fa-solid fa-heart text-pink-400 animate-pulse";
+                playSoftMelody();
+                melodyInterval = setInterval(playSoftMelody, 500);
+            } else {
+                isAudioPlaying = false;
+                btnText.innerText = "Âm nhạc: Tắt";
+                btnIcon.className = "fa-solid fa-music text-pink-400";
+                clearInterval(melodyInterval);
+            }
+        }
+
+        function toggleAudio(e) {
+            e.stopPropagation();
+            toggleAudioManual(!isAudioPlaying);
+        }
+    </script>
+</body>
+</html>
